@@ -32,6 +32,7 @@ export async function register(req, res) {
     {
       id: user._id,
       role: user.role,
+      fullName: user.fullName
     },
     _config.JWT_SECRET,
     { expiresIn: "2d" },
@@ -68,6 +69,7 @@ export async function googleAuthCallback(req, res) {
       {
         id: isUserAlreadyExists._id,
         role: isUserAlreadyExists.role,
+        fullName: isUserAlreadyExists.fullName
       },
       _config.JWT_SECRET,
       { expiresIn: "2d" },
@@ -91,6 +93,7 @@ export async function googleAuthCallback(req, res) {
     {
       id: newUser._id,
       role: newUser.role,
+      fullName: newUser.fullName
     },
     _config.JWT_SECRET,
     { expiresIn: "2d" },
@@ -124,6 +127,14 @@ export async function login(req, res) {
   if (!isPasswordValid) {
     return res.status(401).json({ message: "Unauthorized: invalid password." });
   }
+
+  const token = jwt.sign({
+    id: user._id,
+    role: user.role,
+    fullName: user.fullName
+  });
+
+  res.cookie("token", token);
 
   return res
     .status(200)
