@@ -24,4 +24,9 @@ function uploadFiles(file){
     })
 }
 
+export async function getFileDetails(fileId) {
+    return imagekitVariables.getFileDetails(fileId);
+}
+
+export { imagekitVariables };
 export default uploadFiles;

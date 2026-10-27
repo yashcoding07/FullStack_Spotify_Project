@@ -56,8 +56,9 @@ async function runTests() {
     const port = server.address().port;
     console.log(`Test server running on port ${port}`);
 
+    const artistId = new mongoose.Types.ObjectId();
     const artistUser = {
-      id: new mongoose.Types.ObjectId().toString(),
+      id: artistId.toString(),
       role: "artist",
       fullName: {
         firstName: "TestArtistFirstName",
@@ -88,10 +89,8 @@ async function runTests() {
     });
 
     const responseData = await response.json();
-    console.log("API Response Status:", response.status);
-    console.log("API Response Body:", JSON.stringify(responseData, null, 2));
-
-    server.close();
+    console.log("POST /api/music/upload Response Status:", response.status);
+    console.log("POST /api/music/upload Response Body:", JSON.stringify(responseData, null, 2));
 
     if (response.status !== 200) {
       throw new Error(`API test failed with status ${response.status}: ${JSON.stringify(responseData)}`);
@@ -104,6 +103,37 @@ async function runTests() {
       uploadedFileIds.push(responseData.music.coverImageKey);
     }
 
+    console.log("\n=== STEP 4: Test Express API Route GET /api/music/artist-musics ===");
+    const getResponse = await fetch(`http://localhost:${port}/api/music/artist-musics`, {
+      method: "GET",
+      headers: {
+        Cookie: `token=${token}`,
+      },
+    });
+
+    const getResponseData = await getResponse.json();
+    console.log("GET /api/music/artist-musics Response Status:", getResponse.status);
+    console.log("GET /api/music/artist-musics Response Body:", JSON.stringify(getResponseData, null, 2));
+
+    server.close();
+
+    if (getResponse.status !== 200) {
+      throw new Error(`GET /api/music/artist-musics failed: ${JSON.stringify(getResponseData)}`);
+    }
+
+    if (!Array.isArray(getResponseData.musics) || getResponseData.musics.length === 0) {
+      throw new Error("Expected musics array to contain at least 1 song");
+    }
+
+    const fetchedSong = getResponseData.musics[0];
+    if (!fetchedSong.musicUrl || !fetchedSong.coverImageUrl) {
+      throw new Error("Song is missing musicUrl or coverImageUrl!");
+    }
+
+    console.log("\nURL verification successful:");
+    console.log("Music URL:", fetchedSong.musicUrl);
+    console.log("Cover Image URL:", fetchedSong.coverImageUrl);
+
     // Verify record in MongoDB
     if (responseData.music?._id) {
       const foundInDb = await musicModel.findById(responseData.music._id);
@@ -113,7 +143,9 @@ async function runTests() {
         artist: foundInDb.artist,
         artistId: foundInDb.artistId?.toString(),
         musicKey: foundInDb.musicKey,
+        musicUrl: foundInDb.musicUrl,
         coverImageKey: foundInDb.coverImageKey,
+        coverImageUrl: foundInDb.coverImageUrl,
       });
 
       // Cleanup MongoDB record
@@ -121,9 +153,9 @@ async function runTests() {
       console.log("Cleaned up test document from MongoDB.");
     }
 
-    console.log("\nAPI Integration upload PASSED!");
+    console.log("\nAll API and URL retrieval tests PASSED!");
   } finally {
-    console.log("\n=== STEP 4: Clean up test files from ImageKit ===");
+    console.log("\n=== STEP 5: Clean up test files from ImageKit ===");
     for (const fileId of uploadedFileIds) {
       try {
         await ik.deleteFile(fileId);
@@ -142,4 +174,3 @@ runTests().catch((err) => {
   console.error("Test execution failed:", err);
   process.exit(1);
 });
-

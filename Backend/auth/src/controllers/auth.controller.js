@@ -9,6 +9,7 @@ export async function register(req, res) {
     email,
     password,
     fullName: { firstName, lastName },
+    role = "user",
   } = req.body;
 
   const isUserAlreadyExists = await userModel.findOne({ email });
@@ -26,13 +27,14 @@ export async function register(req, res) {
       firstName,
       lastName,
     },
+    role,
   });
 
   const token = jwt.sign(
     {
       id: user._id,
       role: user.role,
-      fullName: user.fullName
+      fullName: user.fullName,
     },
     _config.JWT_SECRET,
     { expiresIn: "2d" },
@@ -69,7 +71,7 @@ export async function googleAuthCallback(req, res) {
       {
         id: isUserAlreadyExists._id,
         role: isUserAlreadyExists.role,
-        fullName: isUserAlreadyExists.fullName
+        fullName: isUserAlreadyExists.fullName,
       },
       _config.JWT_SECRET,
       { expiresIn: "2d" },
@@ -93,7 +95,7 @@ export async function googleAuthCallback(req, res) {
     {
       id: newUser._id,
       role: newUser.role,
-      fullName: newUser.fullName
+      fullName: newUser.fullName,
     },
     _config.JWT_SECRET,
     { expiresIn: "2d" },
@@ -128,23 +130,25 @@ export async function login(req, res) {
     return res.status(401).json({ message: "Unauthorized: invalid password." });
   }
 
-  const token = jwt.sign({
-    id: user._id,
-    role: user.role,
-    fullName: user.fullName
-  });
+  const token = jwt.sign(
+    {
+      id: user._id,
+      role: user.role,
+      fullName: user.fullName,
+    },
+    _config.JWT_SECRET,
+    { expiresIn: "2d" },
+  );
 
   res.cookie("token", token);
 
-  return res
-    .status(200)
-    .json({
-      message: "User Logged in Successfully",
-      user: {
-        id: user._id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-      },
-    });
+  return res.status(200).json({
+    message: "User Logged in Successfully",
+    user: {
+      id: user._id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+    },
+  });
 }

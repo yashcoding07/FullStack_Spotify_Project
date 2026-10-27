@@ -11,16 +11,23 @@ const musicSchema = new mongoose.Schema({
   },
   artistId: {
     type: mongoose.Schema.Types.ObjectId,
+    required: true,
   },
   musicKey: {
     type: String,
-    required: true
+    required: true,
+  },
+  musicUrl: {
+    type: String,
   },
   coverImageKey: {
     type: String,
-    required: true
-  }
-}, { timeStamps: true });
+    required: true,
+  },
+  coverImageUrl: {
+    type: String,
+  },
+}, { timestamps: true });
 
 const musicModel = mongoose.model('Music', musicSchema);
 
