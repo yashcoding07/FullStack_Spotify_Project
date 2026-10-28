@@ -26,7 +26,13 @@ const Login = () => {
       withCredentials: true
     })  
 
-    navigate("/");
+    console.log("Login response: ", response.data);
+
+    if (response.data?.user?.role === 'artist') {
+      navigate("/artist/dashboard");
+    } else {
+      navigate("/");
+    }
 
     } catch (error) {
       console.log("error logging in: ", error);

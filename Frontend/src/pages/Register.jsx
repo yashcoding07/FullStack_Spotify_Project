@@ -42,7 +42,13 @@ const Register = () => {
       withCredentials: true
     });
 
-    navigate("/");  
+    console.log("Register response: ", response.data);
+
+    if (payload.role === 'artist') {
+      navigate("/artist/dashboard");
+    } else {
+      navigate("/");
+    }  
 
     } catch (error) {
      console.log("Error registering: ", error); 

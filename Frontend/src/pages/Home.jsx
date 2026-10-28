@@ -13,6 +13,12 @@ const Home = () => {
         </Link>
         <div className="flex items-center gap-4">
           <Link
+            to="/artist/dashboard"
+            className="text-neutral-400 hover:text-[#1DB954] font-semibold text-sm transition-colors hidden sm:inline-block"
+          >
+            For Artists
+          </Link>
+          <Link
             to="/register"
             className="text-neutral-400 hover:text-white font-semibold text-sm transition-colors"
           >
@@ -38,7 +44,7 @@ const Home = () => {
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <Link
             to="/register"
-            className="w-full sm:w-auto bg-[#1DB954] hover:bg-[#1ed760] hover: text-black font-bold px-8 py-3.5 rounded-full text-base tracking-wide transition-all duration-200 shadow-lg hover:scale-105"
+            className="w-full sm:w-auto bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold px-8 py-3.5 rounded-full text-base tracking-wide transition-all duration-200 shadow-lg hover:scale-105"
           >
             Get Spotify Free
           </Link>
@@ -47,6 +53,12 @@ const Home = () => {
             className="w-full sm:w-auto bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white font-semibold px-8 py-3.5 rounded-full text-base transition-all duration-200"
           >
             Log In
+          </Link>
+          <Link
+            to="/artist/dashboard"
+            className="w-full sm:w-auto text-neutral-400 hover:text-white font-semibold text-sm transition-colors py-2 underline underline-offset-4"
+          >
+            Artist Dashboard →
           </Link>
         </div>
       </main>
