@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
-import axios from "axios"
+import { authApi } from '../config/api'
+import { useAuth } from '../context/useAuth'
 
 const Register = () => {
-
-  const navigate = useNavigate();
+  const navigate = useNavigate()
+  const { login } = useAuth()
+  const [apiError, setApiError] = useState(null)
 
   const {
     register,
@@ -23,42 +26,43 @@ const Register = () => {
   })
 
   const onSubmit = async (data) => {
-    // Ensures role defaults to 'user' if omitted
+    setApiError(null)
     const payload = {
       ...data,
       role: data.role || 'user',
     }
 
     try {
-    const response  = await axios.post("http://localhost:3000/api/auth/register", {
-      email: data.email,
-      fullName: {
-        firstName: data.fullName.firstName,
-        lastName: data.fullName.lastName
-      },
-      password: data.password,
-      role: data.role || 'user', 
-    }, {
-      withCredentials: true
-    });
+      const response = await authApi.post('/register', {
+        email: data.email,
+        fullName: {
+          firstName: data.fullName.firstName,
+          lastName: data.fullName.lastName,
+        },
+        password: data.password,
+        role: data.role || 'user',
+      })
 
-    console.log("Register response: ", response.data);
+      if (response.data?.user) {
+        login(response.data.user)
+      }
 
-    if (payload.role === 'artist') {
-      navigate("/artist/dashboard");
-    } else {
-      navigate("/");
-    }  
-
+      if (payload.role === 'artist') {
+        navigate('/artist/dashboard')
+      } else {
+        navigate('/')
+      }
     } catch (error) {
-     console.log("Error registering: ", error); 
+      console.error('Registration error:', error)
+      const msg =
+        error.response?.data?.message ||
+        error.response?.data?.errors?.[0]?.msg ||
+        'Registration failed. Please check your information.'
+      setApiError(msg)
     }
-
-    console.log('Register payload:', payload)
   }
 
   const handleGoogleAuth = () => {
-    // Redirect to backend Google OAuth endpoint
     window.location.href = 'http://localhost:3000/api/auth/google'
   }
 
@@ -66,7 +70,10 @@ const Register = () => {
     <div className="min-h-screen bg-[#121212] text-white flex flex-col justify-center items-center px-4 py-8 sm:px-6 lg:px-8">
       {/* Header / Brand */}
       <div className="mb-8 text-center">
-        <Link to="/" className="inline-flex items-center gap-2 text-2xl sm:text-3xl font-extrabold tracking-tight hover:opacity-90 transition-opacity">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-2xl sm:text-3xl font-extrabold tracking-tight hover:opacity-90 transition-opacity"
+        >
           <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#1DB954] flex items-center justify-center text-black font-black text-xl">
             ♫
           </span>
@@ -82,6 +89,12 @@ const Register = () => {
         <p className="text-sm text-neutral-400 text-center mb-6">
           Create your account in seconds
         </p>
+
+        {apiError && (
+          <div className="mb-5 p-3 rounded-lg bg-red-500/10 border border-red-500/40 text-red-400 text-xs sm:text-sm">
+            {apiError}
+          </div>
+        )}
 
         {/* Google Signup Button */}
         <button

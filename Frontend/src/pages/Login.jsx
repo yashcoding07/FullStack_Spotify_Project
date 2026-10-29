@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import { authApi } from '../config/api'
+import { useAuth } from '../context/useAuth'
 
 const Login = () => {
-
-  const navigate = useNavigate();
+  const navigate = useNavigate()
+  const { login } = useAuth()
+  const [apiError, setApiError] = useState(null)
 
   const {
     register,
@@ -18,31 +21,33 @@ const Login = () => {
   })
 
   const onSubmit = async (data) => {
+    setApiError(null)
     try {
-    const response = await axios.post("http://localhost:3000/api/auth/login", {
-      email: data.email,
-      password: data.password
-    }, {
-      withCredentials: true
-    })  
+      const response = await authApi.post('/login', {
+        email: data.email,
+        password: data.password,
+      })
 
-    console.log("Login response: ", response.data);
+      if (response.data?.user) {
+        login(response.data.user)
+      }
 
-    if (response.data?.user?.role === 'artist') {
-      navigate("/artist/dashboard");
-    } else {
-      navigate("/");
-    }
-
+      if (response.data?.user?.role === 'artist') {
+        navigate('/artist/dashboard')
+      } else {
+        navigate('/')
+      }
     } catch (error) {
-      console.log("error logging in: ", error);
+      console.error('Login error:', error)
+      const msg =
+        error.response?.data?.message ||
+        error.response?.data?.errors?.[0]?.msg ||
+        'Failed to log in. Please check your credentials.'
+      setApiError(msg)
     }
-    
-    console.log('Login payload:', data)
   }
 
   const handleGoogleAuth = () => {
-    // Redirect to backend Google OAuth endpoint
     window.location.href = 'http://localhost:3000/api/auth/google'
   }
 
@@ -50,7 +55,10 @@ const Login = () => {
     <div className="min-h-screen bg-[#121212] text-white flex flex-col justify-center items-center px-4 py-8 sm:px-6 lg:px-8">
       {/* Header / Brand */}
       <div className="mb-8 text-center">
-        <Link to="/" className="inline-flex items-center gap-2 text-2xl sm:text-3xl font-extrabold tracking-tight hover:opacity-90 transition-opacity">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-2xl sm:text-3xl font-extrabold tracking-tight hover:opacity-90 transition-opacity"
+        >
           <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#1DB954] flex items-center justify-center text-black font-black text-xl">
             ♫
           </span>
@@ -66,6 +74,12 @@ const Login = () => {
         <p className="text-sm text-neutral-400 text-center mb-6">
           Welcome back! Please enter your details
         </p>
+
+        {apiError && (
+          <div className="mb-5 p-3 rounded-lg bg-red-500/10 border border-red-500/40 text-red-400 text-xs sm:text-sm">
+            {apiError}
+          </div>
+        )}
 
         {/* Google Login Button */}
         <button

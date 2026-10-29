@@ -1,12 +1,14 @@
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
-import axios from 'axios'
 import { useEffect, useState } from 'react'
+import { musicApi } from '../config/api'
+import Navbar from '../components/Navbar'
 
 const CreatePlaylist = () => {
   const navigate = useNavigate()
   const [songs, setSongs] = useState([])
   const [fetchError, setFetchError] = useState(null)
+  const [apiError, setApiError] = useState(null)
   const [fetchingSongs, setFetchingSongs] = useState(true)
   const [selectedSongIds, setSelectedSongIds] = useState([])
 
@@ -27,13 +29,11 @@ const CreatePlaylist = () => {
     const fetchSongs = async () => {
       try {
         setFetchingSongs(true)
-        const res = await axios.get('http://localhost:3002/api/music/artist-musics', {
-          withCredentials: true,
-        })
+        const res = await musicApi.get('/artist-musics')
         setSongs(res.data?.musics ?? [])
       } catch (err) {
         console.error('Failed to load songs:', err)
-        setFetchError('Could not load your tracks. Make sure you are logged in as an artist.')
+        setFetchError('Could not load your tracks. Please ensure you are logged in as an artist.')
       } finally {
         setFetchingSongs(false)
       }
@@ -41,7 +41,6 @@ const CreatePlaylist = () => {
     fetchSongs()
   }, [])
 
-  // Keep RHF's "musics" field in sync with selectedSongIds
   const toggleSong = (id) => {
     const updated = selectedSongIds.includes(id)
       ? selectedSongIds.filter((s) => s !== id)
@@ -51,55 +50,53 @@ const CreatePlaylist = () => {
     setValue('musics', updated, { shouldValidate: true })
   }
 
-  // Track selected count for the button label
   const selectedCount = selectedSongIds.length
 
   const onSubmit = async (data) => {
+    setApiError(null)
     try {
-      // Payload matches createPlaylist: { title, musics: [ObjectId, ...] }
-      await axios.post(
-        'http://localhost:3002/api/music/playlist',
-        { title: data.title, musics: data.musics },
-        { withCredentials: true }
-      )
+      await musicApi.post('/playlist', {
+        title: data.title,
+        musics: data.musics,
+      })
+
       navigate('/artist/dashboard')
     } catch (err) {
       console.error('Create playlist failed:', err)
+      const msg =
+        err.response?.data?.message ||
+        'Failed to create playlist. Make sure you are logged in as an artist.'
+      setApiError(msg)
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#121212] text-white flex flex-col">
-      {/* Header */}
-      <header className="w-full flex items-center justify-between px-6 py-4 bg-[#181818] border-b border-neutral-800 sticky top-0 z-10">
-        <Link to="/artist/dashboard" className="flex items-center gap-2 text-2xl font-extrabold tracking-tight">
-          <span className="w-9 h-9 rounded-full bg-[#1DB954] flex items-center justify-center text-black font-black text-xl">
-            ♫
-          </span>
-          <span>Spotify</span>
-        </Link>
-        <span className="text-xs font-semibold uppercase tracking-wider bg-neutral-800 text-[#1DB954] px-2.5 py-1 rounded-full border border-neutral-700 hidden sm:inline-block">
-          Create Playlist
-        </span>
-        <Link
-          to="/artist/dashboard"
-          className="text-sm text-neutral-400 hover:text-white font-semibold transition-colors"
-        >
-          ← Back to Dashboard
-        </Link>
-      </header>
+    <div className="min-h-screen bg-[#121212] text-white flex flex-col pb-24">
+      <Navbar />
 
-      {/* Form Container */}
-      <main className="flex-1 flex items-start justify-center px-4 py-10 sm:px-6 lg:px-8">
+      <main className="flex-1 flex items-start justify-center px-4 py-8 sm:px-6 lg:px-8">
         <div className="w-full max-w-xl">
-          <div className="mb-8">
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+          <Link
+            to="/artist/dashboard"
+            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white mb-6 transition-colors"
+          >
+            ← Back to Artist Dashboard
+          </Link>
+
+          <div className="mb-6">
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight">
               Create a Playlist
             </h1>
-            <p className="text-neutral-400 mt-1.5 text-sm sm:text-base">
-              Give your playlist a name and pick the tracks to include.
+            <p className="text-neutral-400 mt-1 text-sm sm:text-base">
+              Give your playlist a title and pick which tracks to include.
             </p>
           </div>
+
+          {apiError && (
+            <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/40 text-red-400 text-sm">
+              {apiError}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
             {/* Playlist Title */}
@@ -130,16 +127,16 @@ const CreatePlaylist = () => {
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-semibold text-neutral-200">
                   Select Tracks
-                  <span className="ml-2 text-xs font-normal text-neutral-500">(Optional — add later too)</span>
+                  <span className="ml-2 text-xs font-normal text-neutral-500">(Optional — add more later)</span>
                 </label>
-                {selectedSongIds.length > 0 && (
+                {selectedCount > 0 && (
                   <span className="text-xs font-semibold text-[#1DB954]">
-                    {selectedSongIds.length} selected
+                    {selectedCount} selected
                   </span>
                 )}
               </div>
 
-              {/* Hidden RHF field for musics */}
+              {/* Hidden field */}
               <input type="hidden" {...register('musics')} />
 
               {fetchingSongs ? (
@@ -165,7 +162,7 @@ const CreatePlaylist = () => {
                   </Link>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-72 overflow-y-auto pr-1 scrollbar-thin scrollbar-track-neutral-900 scrollbar-thumb-neutral-700">
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                   {songs.map((song) => {
                     const isSelected = selectedSongIds.includes(song._id)
                     return (
@@ -179,7 +176,6 @@ const CreatePlaylist = () => {
                             : 'bg-neutral-900 border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800'
                         }`}
                       >
-                        {/* Cover Image */}
                         {song.coverImageUrl ? (
                           <img
                             src={song.coverImageUrl}
@@ -192,13 +188,11 @@ const CreatePlaylist = () => {
                           </div>
                         )}
 
-                        {/* Info */}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-white truncate">{song.title}</p>
-                          <p className="text-xs text-neutral-400 truncate">{song.artist}</p>
+                          <p className="text-xs text-neutral-400 truncate">{song.artist || "Unknown Artist"}</p>
                         </div>
 
-                        {/* Checkmark */}
                         <div
                           className={`w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center border-2 transition-colors ${
                             isSelected
@@ -217,16 +211,6 @@ const CreatePlaylist = () => {
                   })}
                 </div>
               )}
-
-              {errors.musics && (
-                <p className="text-red-400 text-xs mt-1.5">{errors.musics.message}</p>
-              )}
-            </div>
-
-            {/* Auto-filled info */}
-            <div className="bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-3 text-xs text-neutral-400 leading-relaxed">
-              <span className="font-semibold text-neutral-300">Auto-filled from your profile: </span>
-              Artist name and Artist ID are automatically set from your logged-in session.
             </div>
 
             {/* Submit */}

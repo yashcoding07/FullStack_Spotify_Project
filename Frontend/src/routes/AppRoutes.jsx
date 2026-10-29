@@ -5,6 +5,7 @@ import Register from '../pages/Register'
 import ArtistDashboard from '../pages/ArtistDashboard'
 import UploadMusic from '../pages/UploadMusic'
 import CreatePlaylist from '../pages/CreatePlaylist'
+import PlaylistDetail from '../pages/PlaylistDetail'
 
 const AppRoutes = () => {
   return (
@@ -15,6 +16,7 @@ const AppRoutes = () => {
       <Route path="/artist/dashboard" element={<ArtistDashboard />} />
       <Route path="/artist/upload-music" element={<UploadMusic />} />
       <Route path="/artist/create-playlist" element={<CreatePlaylist />} />
+      <Route path="/playlist/:id" element={<PlaylistDetail />} />
     </Routes>
   )
 }

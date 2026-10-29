@@ -94,18 +94,29 @@ export async function getArtistMusics(req, res) {
 export async function createPlaylist(req, res) {
   const { title, musics } = req.body;
 
+  if (!title) {
+    return res.status(400).json({ message: "Playlist title is required" });
+  }
+
   try {
+    const artistName = req.user?.fullName?.firstName
+      ? `${req.user.fullName.firstName} ${req.user.fullName.lastName || ""}`.trim()
+      : req.user?.artist || req.user?.email || "Unknown Artist";
+
     const playlist = await playlistModel.create({
-      artist: req.user.fullName.firstName + " " + req.user.fullName.lastName,
-      artistId: req.user.id,
+      artist: artistName,
+      artistId: req.user?.id || req.user?._id,
       title,
-      userId: req.user.id,
-      musics,
+      musics: musics || [],
     });
+
+    const populated = await playlistModel
+      .findById(playlist._id)
+      .populate("musics");
 
     return res
       .status(200)
-      .json({ message: "Playlist created successfully", playlist });
+      .json({ message: "Playlist created successfully", playlist: populated });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: "Internal server error" });
@@ -114,7 +125,8 @@ export async function createPlaylist(req, res) {
 
 export async function getPlaylist(req, res) {
   try {
-    const playlists = await playlistModel.find({ artistId: req.user.id });
+    const filter = req.query.mine ? { artistId: req.user?.id || req.user?._id } : {};
+    const playlists = await playlistModel.find(filter).populate("musics").lean();
     return res.status(200).json(playlists);
   } catch (err) {
     console.log(err);
@@ -123,14 +135,14 @@ export async function getPlaylist(req, res) {
 }
 
 export async function getAllMusics(req, res) {
-  const { skip = 0, limit = 10 } = req.query;
+  const { skip = 0, limit = 50 } = req.query;
 
   try {
-    const musicDocs = await musicModel.find().skip(skip).limit(limit).lean();
-    const musics = [];
-    for (let music of musicDocs) {
-      (musicDocs.musicUrl, musicDocs.coverImageUrl, musics.push(music));
-    }
+    const musics = await musicModel
+      .find()
+      .skip(Number(skip))
+      .limit(Number(limit))
+      .lean();
 
     return res
       .status(200)
@@ -145,24 +157,11 @@ export async function getPlaylistById(req, res) {
   const { id } = req.params;
 
   try {
-    const playlistDoc = await musicModel.findById(id).lean();
+    const playlistDoc = await playlistModel.findById(id).populate("musics").lean();
 
     if (!playlistDoc) {
       return res.status(404).json({ message: "Playlist not found" });
     }
-
-    const musics = [];
-
-    for (let musicId of playlistDoc.musics) {
-      const music = await musicModel.findById(musicId).lean();
-      if (music) {
-        music.musicUrl;
-        music.coverImageUrl;
-        musics.push(music);
-      }
-    }
-
-    playlistDoc.musics = musics;
 
     return res.status(200).json({ playlist: playlistDoc });
   } catch (error) {

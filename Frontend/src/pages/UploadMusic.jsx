@@ -1,12 +1,14 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
-import axios from 'axios'
-import { useState } from 'react'
+import { musicApi } from '../config/api'
+import Navbar from '../components/Navbar'
 
 const UploadMusic = () => {
   const navigate = useNavigate()
   const [coverPreview, setCoverPreview] = useState(null)
   const [musicFileName, setMusicFileName] = useState(null)
+  const [apiError, setApiError] = useState(null)
 
   const {
     register,
@@ -19,21 +21,24 @@ const UploadMusic = () => {
   })
 
   const onSubmit = async (data) => {
+    setApiError(null)
     try {
-      // Build multipart/form-data — matches upload.fields(['music','coverImage'])
       const formData = new FormData()
       formData.append('title', data.title)
       formData.append('music', data.music[0])
       formData.append('coverImage', data.coverImage[0])
 
-      await axios.post('http://localhost:3002/api/music/upload', formData, {
-        withCredentials: true,
+      await musicApi.post('/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
 
       navigate('/artist/dashboard')
     } catch (err) {
       console.error('Upload failed:', err)
+      const msg =
+        err.response?.data?.message ||
+        'Failed to upload track. Please ensure you are logged in as an artist and try again.'
+      setApiError(msg)
     }
   }
 
@@ -52,37 +57,32 @@ const UploadMusic = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#121212] text-white flex flex-col">
-      {/* Header */}
-      <header className="w-full flex items-center justify-between px-6 py-4 bg-[#181818] border-b border-neutral-800 sticky top-0 z-10">
-        <Link to="/artist/dashboard" className="flex items-center gap-2 text-2xl font-extrabold tracking-tight">
-          <span className="w-9 h-9 rounded-full bg-[#1DB954] flex items-center justify-center text-black font-black text-xl">
-            ♫
-          </span>
-          <span>Spotify</span>
-        </Link>
-        <span className="text-xs font-semibold uppercase tracking-wider bg-neutral-800 text-[#1DB954] px-2.5 py-1 rounded-full border border-neutral-700 hidden sm:inline-block">
-          Upload Music
-        </span>
-        <Link
-          to="/artist/dashboard"
-          className="text-sm text-neutral-400 hover:text-white font-semibold transition-colors"
-        >
-          ← Back to Dashboard
-        </Link>
-      </header>
+    <div className="min-h-screen bg-[#121212] text-white flex flex-col pb-24">
+      <Navbar />
 
-      {/* Form Container */}
-      <main className="flex-1 flex items-start justify-center px-4 py-10 sm:px-6 lg:px-8">
+      <main className="flex-1 flex items-start justify-center px-4 py-8 sm:px-6 lg:px-8">
         <div className="w-full max-w-xl">
-          <div className="mb-8">
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+          <Link
+            to="/artist/dashboard"
+            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white mb-6 transition-colors"
+          >
+            ← Back to Artist Dashboard
+          </Link>
+
+          <div className="mb-6">
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight">
               Upload a New Track
             </h1>
-            <p className="text-neutral-400 mt-1.5 text-sm sm:text-base">
-              Fill in the details below and upload your music and cover art.
+            <p className="text-neutral-400 mt-1 text-sm sm:text-base">
+              Upload your audio file and cover art to ImageKit.
             </p>
           </div>
+
+          {apiError && (
+            <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/40 text-red-400 text-sm">
+              {apiError}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
             {/* Title */}
@@ -165,7 +165,7 @@ const UploadMusic = () => {
             {/* Music File */}
             <div>
               <label htmlFor="music" className="block text-sm font-semibold mb-1.5 text-neutral-200">
-                Music File <span className="text-red-400">*</span>
+                Music Audio File <span className="text-red-400">*</span>
               </label>
 
               <label
@@ -176,18 +176,18 @@ const UploadMusic = () => {
                     : 'border-neutral-700 bg-neutral-900 hover:border-[#1DB954] hover:bg-[#1DB954]/5'
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <svg className="w-6 h-6 text-neutral-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" />
                   </svg>
-                  <div>
-                    <p className="text-sm font-medium text-neutral-300">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-neutral-300 truncate">
                       {musicFileName ?? 'Click to select audio file'}
                     </p>
                     <p className="text-xs text-neutral-500">MP3, WAV, FLAC, AAC — max 100 MB</p>
                   </div>
                 </div>
-                <span className="text-xs text-[#1DB954] font-semibold flex-shrink-0">Browse</span>
+                <span className="text-xs text-[#1DB954] font-semibold flex-shrink-0 pl-2">Browse</span>
                 <input
                   id="music"
                   type="file"
@@ -212,10 +212,10 @@ const UploadMusic = () => {
               )}
             </div>
 
-            {/* Info note about auto-filled fields */}
+            {/* Info note */}
             <div className="bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-3 text-xs text-neutral-400 leading-relaxed">
-              <span className="font-semibold text-neutral-300">Auto-filled from your profile: </span>
-              Artist name and Artist ID are automatically set from your logged-in session.
+              <span className="font-semibold text-neutral-300">Creator attribution: </span>
+              Your artist name and account will automatically be tied to this release.
             </div>
 
             {/* Submit */}
@@ -224,7 +224,7 @@ const UploadMusic = () => {
               disabled={isSubmitting}
               className="w-full py-3 px-4 rounded-full bg-[#1DB954] hover:bg-[#1ed760] disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.99] text-black font-bold text-sm tracking-wide transition-all duration-200 shadow-md"
             >
-              {isSubmitting ? 'Uploading...' : 'Upload Track'}
+              {isSubmitting ? 'Uploading to ImageKit...' : 'Upload Track'}
             </button>
           </form>
         </div>
@@ -234,4 +234,3 @@ const UploadMusic = () => {
 }
 
 export default UploadMusic
-
